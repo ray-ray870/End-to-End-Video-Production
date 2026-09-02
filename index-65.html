@@ -1,0 +1,2152 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>動画制作ボード</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&family=Noto+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#efe9f7;
+    --surface:#ffffff;
+    --surface-2:#f2ecfa;
+    --text:#2f2140;
+    --text-muted:#8577a0;
+    --border:#ddd0ee;
+    --red:#d94f7a;
+    --amber:#d98a2e;
+    --green:#3f9d6f;
+    --purple:#5a3d99;
+    --purple-deep:#43296f;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Noto Sans JP',sans-serif;
+    -webkit-tap-highlight-color:transparent;
+    padding-bottom:100px;
+  }
+  .clapper{
+    height:8px;
+    background:linear-gradient(90deg, var(--purple-deep), var(--purple), var(--red));
+  }
+  header{
+    padding:20px 18px 14px;
+    border-bottom:1px solid var(--border);
+    background:var(--surface);
+  }
+  h1{
+    font-family:'Zen Maru Gothic',sans-serif;
+    font-size:30px;
+    font-weight:900;
+    color:var(--purple-deep);
+    letter-spacing:.5px;
+    margin:0 0 6px;
+  }
+  .status-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    font-family:'Zen Maru Gothic',sans-serif;
+    font-size:13px;
+    color:var(--text-muted);
+  }
+  .live{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    color:var(--red);
+  }
+  .live .dot{
+    width:8px;height:8px;border-radius:50%;
+    background:var(--red);
+    animation:pulse 1.6s infinite;
+  }
+  @keyframes pulse{
+    0%,100%{opacity:1;}
+    50%{opacity:.3;}
+  }
+  .sync-btn{
+    background:none;border:1px solid var(--border);
+    color:var(--text-muted);
+    border-radius:6px;
+    padding:5px 10px;
+    font-family:'Zen Maru Gothic',sans-serif;
+    font-size:12px;
+    display:flex;align-items:center;gap:5px;
+  }
+  .sync-btn:active{transform:scale(.96);}
+  .me-btn{
+    margin-top:10px;
+    background:none;
+    border:1px solid var(--border);
+    color:var(--text-muted);
+    border-radius:6px;
+    padding:5px 10px;
+    font-size:12px;
+  }
+  #saveStatus{
+    font-family:'Zen Maru Gothic',sans-serif;
+    font-size:11px;
+    padding:6px 18px 0;
+    min-height:16px;
+    color:var(--text-muted);
+  }
+  #saveStatus.error{color:var(--red);}
+  #saveStatus.ok{color:var(--green);}
+  .warn-banner{
+    background:#fbe1e6;
+    color:#9c2b46;
+    font-size:13px;
+    padding:10px 18px;
+    line-height:1.6;
+  }
+  .warn-banner.hidden{display:none;}
+  .notice{
+    font-size:12px;
+    color:var(--text-muted);
+    padding:8px 18px 0;
+    line-height:1.5;
+  }
+  .tabs{
+    display:flex;
+    position:sticky;top:0;z-index:5;
+    background:var(--bg);
+    border-bottom:1px solid var(--border);
+    padding:14px 18px 0;
+    gap:6px;
+  }
+  .tab{
+    flex:1;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-bottom:none;
+    border-radius:10px 10px 0 0;
+    padding:12px 6px 10px;
+    text-align:center;
+    color:var(--text-muted);
+    position:relative;
+  }
+  .tab .dots{
+    display:flex;justify-content:center;gap:4px;margin-bottom:6px;
+  }
+  .tab .dots span{
+    width:5px;height:5px;border-radius:50%;
+    background:var(--border);
+  }
+  .tab.active{background:var(--surface-2);color:var(--text);}
+  .tab.active .dots span{background:var(--tabcolor,var(--red));}
+  .tab[data-status="requested"]{--tabcolor:var(--red);}
+  .tab[data-status="in_progress"]{--tabcolor:var(--amber);}
+  .tab[data-status="completed"]{--tabcolor:var(--green);}
+  .tab .label{
+    font-family:'Zen Maru Gothic',sans-serif;
+    font-size:16px;
+    letter-spacing:.5px;
+  }
+  .tab .count{
+    font-family:'Zen Maru Gothic',sans-serif;
+    font-size:19px;
+    font-weight:700;
+    display:block;
+    margin-top:2px;
+  }
+  main{
+    padding:16px 14px 0;
+    max-width:640px;
+    margin:0 auto;
+  }
+  .empty{
+    text-align:center;
+    color:var(--text-muted);
+    padding:60px 20px;
+    font-size:15px;
+    line-height:1.7;
+  }
+  .card{
+    position:relative;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-left:5px solid var(--red);
+    border-radius:10px;
+    padding:14px 40px 12px 14px;
+    margin-bottom:12px;
+  }
+  .card[data-status="in_progress"]{border-left-color:var(--amber);}
+  .card[data-status="completed"]{border-left-color:var(--green);}
+  .project-label{
+    font-family:'Zen Maru Gothic',sans-serif;
+    font-size:11px;
+    color:var(--text-muted);
+    letter-spacing:.5px;
+    margin-bottom:5px;
+    text-transform:uppercase;
+  }
+  .card h3{
+    margin:0 0 8px;
+    font-size:17px;
+    font-weight:700;
+    word-break:break-word;
+  }
+  .meta{
+    font-family:'Zen Maru Gothic',sans-serif;
+    font-size:13px;
+    color:var(--text-muted);
+    line-height:1.9;
+  }
+  .meta b{color:var(--text);font-weight:700;}
+  .materials{
+    margin-top:8px;
+    font-size:13px;
+  }
+  .materials.delivery-band{
+    background:#efe4fb;
+    border:1px solid #ddc7f2;
+    border-radius:10px;
+    padding:10px 12px;
+    margin-top:10px;
+  }
+  .materials .m-label{
+    color:var(--text-muted);
+    font-family:'Zen Maru Gothic',sans-serif;
+    font-size:12px;
+    margin-bottom:4px;
+  }
+  .m-row{
+    margin-bottom:7px;
+  }
+  .m-name{
+    font-family:'Zen Maru Gothic',sans-serif;
+    font-size:12px;
+    color:var(--text);
+    margin-bottom:3px;
+  }
+  .hint-text{
+    font-size:12px;
+    color:var(--text-muted);
+    margin-top:8px;
+    font-style:italic;
+  }
+  .message-block{
+    margin-top:10px;
+    background:var(--surface-2);
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:10px 12px;
+  }
+  .message-text{
+    font-size:14px;
+    line-height:1.6;
+    color:var(--text);
+    white-space:pre-wrap;
+    word-break:break-word;
+  }
+  .message-text.clamped{
+    display:-webkit-box;
+    -webkit-line-clamp:3;
+    -webkit-box-orient:vertical;
+    overflow:hidden;
+  }
+  .read-more-btn{
+    background:none;
+    border:none;
+    color:var(--purple);
+    font-weight:700;
+    font-size:12px;
+    padding:6px 0 0;
+  }
+  .chip-btn{
+    display:inline-flex;
+    align-items:center;
+    gap:4px;
+    border:1px solid var(--border);
+    border-radius:999px;
+    padding:8px 14px;
+    font-size:13px;
+    font-weight:600;
+    background:var(--surface-2);
+  }
+  .chip-btn.chip-add{
+    color:#2f8fb0;
+    border-color:#2f8fb0;
+  }
+  .chip-btn.chip-revert{
+    color:var(--text-muted);
+    border-color:var(--border);
+  }
+  .chip-btn.chip-pending{
+    color:var(--amber);
+    border-color:var(--amber);
+  }
+  .chip-btn.chip-final{
+    background:#b8860b;
+    color:#fff;
+    border-color:#b8860b;
+    font-weight:700;
+  }
+  .chip-btn.chip-accept{
+    background:var(--purple);
+    color:#fff;
+    border-color:var(--purple);
+    font-weight:700;
+  }
+  .chip-btn.chip-deliver{
+    background:var(--green);
+    color:#fff;
+    border-color:var(--green);
+    font-weight:700;
+  }
+  .final-chip{
+    display:inline-flex;
+    align-items:center;
+    gap:4px;
+    border:1px solid #b8860b;
+    border-radius:999px;
+    padding:4px 11px;
+    font-size:12px;
+    font-weight:700;
+    color:#b8860b;
+    background:rgba(242,199,68,.12);
+    margin-bottom:8px;
+  }
+  .final-chip.pending-chip{
+    border-color:var(--amber);
+    color:var(--amber);
+    background:rgba(242,169,59,.12);
+  }
+  .card-body.final-archived{
+    filter:grayscale(85%);
+    opacity:.6;
+  }
+  .delete-icon-btn{
+    position:absolute;
+    top:12px;
+    right:12px;
+    background:none;
+    border:none;
+    color:var(--text-muted);
+    font-size:15px;
+    padding:6px;
+    opacity:.55;
+    line-height:1;
+  }
+  .delete-icon-btn:active{
+    opacity:1;
+    color:var(--red);
+  }
+  .materials a.m-link, .materials .m-item{
+    display:block;
+    color:var(--text);
+    background:var(--surface-2);
+    border:1px solid var(--border);
+    border-radius:6px;
+    padding:7px 9px;
+    margin-bottom:5px;
+    word-break:break-all;
+    text-decoration:none;
+    font-size:13px;
+  }
+  .materials a.m-link{color:#2f6fbf;}
+  .delivery-band .dl-btn, .delivery-band .m-item, .delivery-band .m-name{
+    background:#ffffff;
+  }
+  .dl-btn{
+    display:inline-flex;
+    align-items:center;
+    gap:5px;
+    color:var(--green);
+    background:var(--surface-2);
+    border:1px solid var(--border);
+    border-radius:6px;
+    padding:6px 10px;
+    font-size:12px;
+    text-decoration:none;
+  }
+  .dl-btn.open-link{
+    color:#2f6fbf;
+  }
+  .dl-btn.unsupported{
+    color:var(--text-muted);
+    cursor:default;
+  }
+  .thumb-btn{
+    display:inline-block;
+    width:96px;
+    height:96px;
+    border-radius:10px;
+    overflow:hidden;
+    border:1px solid var(--border);
+    background:var(--surface-2);
+    position:relative;
+    padding:0;
+  }
+  .thumb-btn img{
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    display:block;
+    -webkit-touch-callout:none;
+    -webkit-user-select:none;
+    user-select:none;
+    pointer-events:none;
+  }
+  .thumb-btn .thumb-play{
+    position:absolute;
+    inset:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:26px;
+    color:#fff;
+    background:rgba(0,0,0,.18);
+    text-shadow:0 1px 4px rgba(0,0,0,.5);
+  }
+  .thumb-loading{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    width:96px;height:96px;
+    border-radius:10px;
+    border:1px dashed var(--border);
+    color:var(--text-muted);
+    font-size:12px;
+    text-align:center;
+    padding:6px;
+  }
+  .lightbox-content{
+    max-width:94vw;
+    max-height:88vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .lightbox-content img{
+    max-width:94vw;
+    max-height:82vh;
+    border-radius:8px;
+    -webkit-touch-callout:none;
+    -webkit-user-select:none;
+    user-select:none;
+    pointer-events:none;
+  }
+  .lightbox-content iframe{
+    width:min(94vw, 640px);
+    height:min(70vh, 480px);
+    border:none;
+    border-radius:8px;
+    background:#000;
+  }
+  .lightbox-content video{
+    width:min(94vw, 640px);
+    max-height:82vh;
+    border-radius:8px;
+    background:#000;
+  }
+  .lightbox-close{
+    position:fixed;
+    top:16px;right:16px;
+    width:40px;height:40px;
+    border-radius:50%;
+    background:rgba(0,0,0,.5);
+    color:#fff;
+    border:none;
+    font-size:20px;
+    z-index:31;
+  }
+  .card-actions{
+    display:flex;
+    justify-content:flex-end;
+    align-items:center;
+    gap:14px;
+    margin-top:12px;
+  }
+  .link-btn{
+    background:none;border:none;
+    color:var(--text-muted);
+    font-size:13px;
+    padding:6px 2px;
+  }
+  .primary-btn{
+    background:var(--surface-2);
+    border:1px solid var(--border);
+    color:var(--text);
+    font-size:14px;
+    font-weight:600;
+    padding:9px 14px;
+    border-radius:8px;
+  }
+  .card[data-status="requested"] .primary-btn{border-color:var(--amber);color:var(--amber);}
+  .card[data-status="in_progress"] .primary-btn{border-color:var(--green);color:var(--green);}
+  .fab{
+    position:fixed;
+    right:20px;bottom:24px;
+    width:58px;height:58px;
+    border-radius:50%;
+    background:var(--purple);
+    color:#fff;
+    font-size:30px;
+    border:none;
+    box-shadow:0 6px 18px rgba(0,0,0,.4);
+    display:flex;align-items:center;justify-content:center;
+    line-height:1;
+  }
+  .fab:active{transform:scale(.94);}
+  .overlay{
+    position:fixed;inset:0;
+    background:rgba(0,0,0,.6);
+    display:flex;align-items:flex-end;justify-content:center;
+    z-index:20;
+  }
+  .overlay.hidden{display:none;}
+  .is-hidden{display:none !important;}
+  .sheet{
+    background:var(--surface);
+    width:100%;
+    max-width:640px;
+    max-height:88vh;
+    overflow-y:auto;
+    border-radius:16px 16px 0 0;
+    padding:20px 18px 26px;
+    border-top:1px solid var(--border);
+  }
+  .sheet h2{
+    font-family:'Zen Maru Gothic',sans-serif;
+    font-size:22px;
+    letter-spacing:.5px;
+    margin:0 0 16px;
+  }
+  .sheet p.confirm-msg{
+    font-size:15px;
+    line-height:1.7;
+    margin:0 0 6px;
+  }
+  .field{margin-bottom:14px;}
+  .field label{
+    display:block;
+    font-size:13px;
+    color:var(--text-muted);
+    margin-bottom:6px;
+  }
+  .field input{
+    width:100%;
+    background:var(--surface-2);
+    border:1px solid var(--border);
+    color:var(--text);
+    font-size:16px;
+    padding:12px 12px;
+    border-radius:8px;
+    font-family:'Noto Sans JP',sans-serif;
+  }
+  .field textarea{
+    width:100%;
+    background:var(--surface-2);
+    border:1px solid var(--border);
+    color:var(--text);
+    font-size:16px;
+    padding:12px 12px;
+    border-radius:8px;
+    font-family:'Noto Sans JP',sans-serif;
+    resize:vertical;
+    line-height:1.6;
+  }
+  .field input.field-error{
+    border-color:var(--red);
+    box-shadow:0 0 0 1px var(--red);
+  }
+  .field-error-msg{
+    color:var(--red);
+    font-size:12px;
+    margin-top:6px;
+  }
+  .material-block{
+    margin-bottom:12px;
+    padding-bottom:10px;
+    border-bottom:1px dashed var(--border);
+  }
+  .material-block:last-child{
+    border-bottom:none;
+    padding-bottom:0;
+  }
+  .name-row{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    margin-bottom:6px;
+  }
+  .block-index{
+    flex:0 0 auto;
+    font-family:'Zen Maru Gothic',sans-serif;
+    font-weight:700;
+    font-size:14px;
+    color:var(--purple);
+    min-width:18px;
+  }
+  .material-name-input, .delivery-name-input, .extra-material-name-input{
+    flex:1;
+    width:100%;
+    background:var(--surface-2);
+    border:1px solid var(--border);
+    color:var(--text);
+    font-size:14px;
+    padding:9px 10px;
+    border-radius:8px;
+    font-family:'Noto Sans JP',sans-serif;
+  }
+  .material-row{
+    display:flex;
+    gap:8px;
+    margin-bottom:8px;
+  }
+  .material-row input{
+    flex:1;
+    background:var(--surface-2);
+    border:1px solid var(--border);
+    color:var(--text);
+    font-size:16px;
+    padding:11px 12px;
+    border-radius:8px;
+    font-family:'Noto Sans JP',sans-serif;
+  }
+  .open-source{
+    background:var(--surface-2);
+    border:1.5px solid var(--purple);
+    color:var(--purple);
+    font-weight:700;
+    width:56px;
+    border-radius:8px;
+    font-size:13px;
+    white-space:nowrap;
+  }
+  .remove-material{
+    background:var(--surface-2);
+    border:1px solid var(--border);
+    color:var(--text-muted);
+    width:42px;
+    border-radius:8px;
+    font-size:18px;
+  }
+  .source-list{
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+  }
+  .source-btn{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    width:100%;
+    background:var(--surface-2);
+    border:1px solid var(--border);
+    color:var(--text);
+    padding:13px 14px;
+    border-radius:10px;
+    font-size:15px;
+    text-align:left;
+  }
+  .source-btn:active{transform:scale(.98);}
+  .source-btn .emoji{font-size:19px;}
+  .source-hint{
+    font-size:12px;
+    color:var(--text-muted);
+    line-height:1.6;
+    margin:-8px 0 14px;
+  }
+  .add-material-btn{
+    background:none;
+    border:1px dashed var(--border);
+    color:var(--text-muted);
+    width:100%;
+    padding:10px;
+    border-radius:8px;
+    font-size:14px;
+    margin-top:2px;
+  }
+  .sheet-actions{
+    display:flex;
+    gap:10px;
+    margin-top:18px;
+  }
+  .sheet-actions button{
+    flex:1;
+    padding:13px;
+    border-radius:9px;
+    font-size:15px;
+    font-weight:600;
+    border:1px solid var(--border);
+  }
+  .cancel-btn{background:none;color:var(--text-muted);}
+  .submit-btn{background:var(--purple);color:#fff;border-color:var(--purple);}
+  .yes-btn{background:var(--green);color:#fff;border-color:var(--green);}
+  .no-btn{background:none;color:var(--text-muted);}
+
+  /* ---- タブレット・PC向けの調整 ---- */
+  @media (min-width: 720px){
+    main{
+      max-width:760px;
+      padding-left:24px;
+      padding-right:24px;
+    }
+    .tabs, header, .notice{
+      max-width:760px;
+      margin:0 auto;
+    }
+    .tabs{
+      padding-left:24px;
+      padding-right:24px;
+    }
+    .overlay{
+      align-items:center;
+      padding:20px;
+    }
+    .sheet{
+      max-width:480px;
+      max-height:85vh;
+      border-radius:16px;
+      border-top:none;
+      border:1px solid var(--border);
+      box-shadow:0 20px 50px rgba(0,0,0,.5);
+    }
+    .fab{
+      right:calc(50% - 380px + 20px);
+      bottom:32px;
+    }
+    .card{
+      padding:16px 18px 14px;
+    }
+  }
+  @media (min-width: 720px) and (max-width: 1040px){
+    .fab{ right:32px; }
+  }
+
+  /* マウス操作の端末だけ hover を効かせる（タッチ端末は :active のまま） */
+  @media (hover:hover) and (pointer:fine){
+    .tab:hover{color:var(--text);cursor:pointer;}
+    .primary-btn:hover{filter:brightness(1.15);cursor:pointer;}
+    .link-btn:hover{color:var(--text);cursor:pointer;}
+    .dl-btn:hover{filter:brightness(1.2);cursor:pointer;}
+    .fab:hover{filter:brightness(1.1);cursor:pointer;}
+    .source-btn:hover{border-color:var(--text-muted);cursor:pointer;}
+    .sync-btn:hover{border-color:var(--text-muted);cursor:pointer;}
+    .add-material-btn:hover{border-color:var(--text-muted);color:var(--text);cursor:pointer;}
+    .yes-btn:hover{filter:brightness(1.1);cursor:pointer;}
+    .no-btn:hover{color:var(--text);cursor:pointer;}
+    .cancel-btn:hover{color:var(--text);cursor:pointer;}
+    .submit-btn:hover{filter:brightness(1.1);cursor:pointer;}
+    .remove-material:hover{color:var(--red);cursor:pointer;}
+  }
+</style>
+<script>
+  // gapi.load() はページの読み込みが完全に終わった後に呼ぶと、
+  // 内部でdocument.write()が使われる関係でページ全体が白くなることがある。
+  // それを避けるため、api.js自身のonloadコールバックで、できるだけ早いタイミングで読み込む。
+  var pickerApiLoaded = false;
+  function onGapiLoad(){
+    if(typeof gapi !== 'undefined'){
+      gapi.load('picker', function(){ pickerApiLoaded = true; });
+    }
+  }
+</script>
+<script src="https://apis.google.com/js/api.js?onload=onGapiLoad"></script>
+<script src="https://accounts.google.com/gsi/client"></script>
+</head>
+<body>
+
+<div class="clapper"></div>
+<header>
+  <h1>動画制作ボード</h1>
+  <div class="status-row">
+    <span class="live"><span class="dot"></span>LIVE 共有ボード</span>
+    <button class="sync-btn" id="syncBtn">⟳ <span id="syncTime">--:--:--</span></button>
+  </div>
+  <button class="me-btn" id="meBtn">👤 <span id="meLabel">あなたの名前を設定</span></button>
+</header>
+<div id="saveStatus"></div>
+<div class="notice">氏名はニックネームで入力してください。素材・完成品はGoogleドライブ・OneDrive・Dropboxのみ対応です。ダウンロードボタンは、元ファイルの「コピー」を手元に保存するためのものです。ただし、実際に元ファイルを直接編集できてしまうかどうかは、共有時の権限設定（閲覧者／編集者）によって決まります。誤って編集されたくない場合は、共有リンクを発行する際に「閲覧者」を選んでください。</div>
+
+<div class="tabs" id="tabs">
+  <div class="tab active" data-status="requested">
+    <div class="dots"><span></span><span></span></div>
+    <div class="label">依頼</div>
+    <span class="count" id="count-requested">0</span>
+  </div>
+  <div class="tab" data-status="in_progress">
+    <div class="dots"><span></span><span></span></div>
+    <div class="label">制作中</div>
+    <span class="count" id="count-in_progress">0</span>
+  </div>
+  <div class="tab" data-status="completed">
+    <div class="dots"><span></span><span></span></div>
+    <div class="label">納品済み</div>
+    <span class="count" id="count-completed">0</span>
+  </div>
+</div>
+
+<main id="list"></main>
+
+<button class="fab" id="addBtn">+</button>
+
+<!-- 新規依頼追加 -->
+<div class="overlay hidden" id="addOverlay">
+  <div class="sheet">
+    <h2>新規依頼を追加</h2>
+    <div class="field">
+      <label>プロジェクト名</label>
+      <input type="text" id="inputProjectName" placeholder="例）2026年9月キャンペーン">
+    </div>
+    <div class="field">
+      <label>依頼日</label>
+      <input type="date" id="inputDate">
+    </div>
+    <div class="field">
+      <label>依頼者</label>
+      <input type="text" id="inputRequester" placeholder="例）みっちー">
+    </div>
+    <div class="field">
+      <label>メッセージ（任意）</label>
+      <textarea id="inputMessage" rows="3" placeholder="依頼内容の補足など"></textarea>
+    </div>
+    <div class="field">
+      <label>素材動画</label>
+      <div id="materialsList"></div>
+      <button type="button" class="add-material-btn" id="addMaterialBtn">＋ 素材欄を追加</button>
+    </div>
+    <div class="sheet-actions">
+      <button class="cancel-btn" id="cancelAdd">キャンセル</button>
+      <button class="submit-btn" id="submitAdd">依頼する</button>
+    </div>
+  </div>
+</div>
+
+<!-- 素材の取得先を選ぶ -->
+<div class="overlay hidden" id="sourceOverlay">
+  <div class="sheet">
+    <h2>素材をどこから持ってくる？</h2>
+    <p class="source-hint">Googleドライブはこの中からタップして選ぶだけでOKです。OneDrive・Dropboxは、ファイルを選んだら→「リンクをコピー」して、このボードに戻って貼り付けてください。</p>
+    <div class="source-list">
+      <button type="button" class="source-btn" data-source="https://drive.google.com/drive/my-drive"><span class="emoji">🗂️</span>Googleドライブ</button>
+      <button type="button" class="source-btn" data-source="https://onedrive.live.com/"><span class="emoji">🔵</span>OneDrive</button>
+      <button type="button" class="source-btn" data-source="https://www.dropbox.com/home"><span class="emoji">📦</span>Dropbox</button>
+    </div>
+    <div class="sheet-actions">
+      <button class="cancel-btn" id="cancelSource">閉じる</button>
+    </div>
+  </div>
+</div>
+
+<!-- 編集開始（依頼→制作中） -->
+<div class="overlay hidden" id="editOverlay">
+  <div class="sheet">
+    <h2>この動画を編集する</h2>
+    <div class="field">
+      <label>開始日</label>
+      <input type="date" id="inputStartDate">
+    </div>
+    <div class="field">
+      <label>担当者名</label>
+      <input type="text" id="inputEditor" placeholder="例）みっちー">
+    </div>
+    <div class="sheet-actions">
+      <button class="cancel-btn" id="cancelEdit">キャンセル</button>
+      <button class="submit-btn" id="submitEdit">制作中にする</button>
+    </div>
+  </div>
+</div>
+
+<!-- 完成確認（制作中→完成） -->
+<div class="overlay hidden" id="confirmOverlay">
+  <div class="sheet">
+    <h2>納品の確認</h2>
+    <p class="confirm-msg" id="confirmMsg">この動画を納品しますか？</p>
+    <div class="sheet-actions">
+      <button class="no-btn" id="confirmNo">いいえ</button>
+      <button class="yes-btn" id="confirmYes">はい</button>
+    </div>
+  </div>
+</div>
+
+<!-- チームパスワード設定（初回のみ） -->
+<div class="overlay hidden" id="passwordSetupOverlay">
+  <div class="sheet">
+    <h2>🔒 チームパスワードを設定</h2>
+    <p class="source-hint">このボードを開く全員が使う共通のパスワードです。最初に決めた人が、チームメンバーに直接伝えてください（このボード上には表示されません）。</p>
+    <div class="field">
+      <label>パスワード</label>
+      <input type="password" id="inputNewPassword" placeholder="パスワードを入力">
+    </div>
+    <div class="sheet-actions">
+      <button class="submit-btn" id="submitNewPassword" style="flex:1;">設定する</button>
+    </div>
+  </div>
+</div>
+
+<!-- パスワードロック -->
+<div class="overlay hidden" id="passwordLockOverlay">
+  <div class="sheet">
+    <h2>🔒 パスワードを入力</h2>
+    <p class="source-hint">このボードはパスワードで保護されています。チーム共通のパスワードを入力してください。</p>
+    <div class="field">
+      <label>パスワード</label>
+      <input type="password" id="inputUnlockPassword" placeholder="パスワードを入力">
+    </div>
+    <div class="sheet-actions">
+      <button class="submit-btn" id="submitUnlockPassword" style="flex:1;">開く</button>
+    </div>
+  </div>
+</div>
+
+<!-- 画像・動画のその場プレビュー(ライトボックス) -->
+<div class="overlay hidden" id="lightboxOverlay">
+  <button type="button" class="lightbox-close" id="lightboxClose">✕</button>
+  <div class="lightbox-content" id="lightboxContent"></div>
+</div>
+
+<!-- あなたの名前を設定 -->
+<div class="overlay hidden" id="meOverlay">
+  <div class="sheet">
+    <h2>あなたの名前</h2>
+    <p class="source-hint">最初にあなたの名前(ニックネーム)を設定してください。途中で変更も可能です。</p>
+    <div class="field">
+      <label>名前（ニックネーム可）</label>
+      <input type="text" id="inputMeName" placeholder="例）みっちー">
+    </div>
+    <div class="sheet-actions">
+      <button class="cancel-btn" id="cancelMe">キャンセル</button>
+      <button class="submit-btn" id="submitMe">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 権限メッセージ（完成できない理由の案内） -->
+<div class="overlay hidden" id="permissionOverlay">
+  <div class="sheet">
+    <h2>納品できません</h2>
+    <p class="confirm-msg" id="permissionMsg"></p>
+    <div class="sheet-actions">
+      <button class="cancel-btn" id="closePermission">閉じる</button>
+      <button class="submit-btn hidden" id="permissionSetNameBtn">名前を設定する</button>
+    </div>
+  </div>
+</div>
+
+<!-- 削除確認 -->
+<div class="overlay hidden" id="deleteConfirmOverlay">
+  <div class="sheet">
+    <h2>削除の確認</h2>
+    <p class="confirm-msg" id="deleteConfirmMsg">⚠️このプロジェクト依頼を削除しますか？</p>
+    <div class="sheet-actions">
+      <button class="no-btn" id="deleteConfirmNo">いいえ</button>
+      <button class="yes-btn" id="deleteConfirmYes">はい</button>
+    </div>
+  </div>
+</div>
+
+<!-- 完成品を制作へ戻す確認 -->
+<div class="overlay hidden" id="revertConfirmOverlay">
+  <div class="sheet">
+    <h2>確認</h2>
+    <p class="confirm-msg" id="revertConfirmMsg">⚠️これは完成済みのプロジェクトです。制作中へ戻しますか？</p>
+    <div class="sheet-actions">
+      <button class="no-btn" id="revertConfirmNo">いいえ</button>
+      <button class="yes-btn" id="revertConfirmYes">はい</button>
+    </div>
+  </div>
+</div>
+
+<!-- 完成にする（確認日・確認者を記録） -->
+<div class="overlay hidden" id="markFinalOverlay">
+  <div class="sheet">
+    <h2>👑 完成にする</h2>
+    <p class="confirm-msg" id="markFinalProjectName"></p>
+    <div class="field">
+      <label>確認した日</label>
+      <input type="date" id="inputConfirmedDate">
+    </div>
+    <div class="field">
+      <label>確認した人</label>
+      <input type="text" id="inputConfirmedBy" placeholder="例）みっちー">
+    </div>
+    <div class="sheet-actions">
+      <button class="cancel-btn" id="cancelMarkFinal">キャンセル</button>
+      <button class="submit-btn" id="submitMarkFinal">OK</button>
+    </div>
+  </div>
+</div>
+
+<!-- 素材／完成品リンクを追加（依頼・制作中の途中で） -->
+<div class="overlay hidden" id="addMaterialOverlay">
+  <div class="sheet">
+    <h2 id="addMaterialOverlayTitle">素材を追加</h2>
+    <div class="field">
+      <label id="addMaterialOverlayLabel">追加する素材</label>
+      <div id="extraMaterialsList"></div>
+      <button type="button" class="add-material-btn" id="addExtraMaterialBtn">＋ 欄を追加</button>
+    </div>
+    <div class="sheet-actions">
+      <button class="cancel-btn" id="cancelAddMaterial">キャンセル</button>
+      <button class="submit-btn" id="submitAddMaterial">追加する</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbwLYFsTTOWWHauscTz43XUlVf6aPwKmhTyfhg-H9JS32BrQZaCK8XalU_Iv4Cz9i3sK/exec';
+const ME_KEY = 'videoboard_myName';
+let videos = [];
+let activeTab = 'requested';
+let currentTargetId = null;
+let myName = '';
+
+function todayStr(){
+  const d = new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function fmt(dateStr){
+  if(!dateStr) return '-';
+  return dateStr.replace(/-/g,'.');
+}
+function uid(){
+  return 'v'+Date.now()+Math.random().toString(16).slice(2,8);
+}
+function escapeHtml(s){
+  return String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function setSaveStatus(text, cls){
+  const el = document.getElementById('saveStatus');
+  el.textContent = text;
+  el.className = cls || '';
+}
+function showFieldError(inputEl, message){
+  inputEl.classList.add('field-error');
+  let msgEl = inputEl.parentElement.querySelector('.field-error-msg');
+  if(!msgEl){
+    msgEl = document.createElement('div');
+    msgEl.className = 'field-error-msg';
+    inputEl.insertAdjacentElement('afterend', msgEl);
+  }
+  msgEl.textContent = '⚠ ' + message;
+  inputEl.focus();
+}
+function clearFieldError(inputEl){
+  inputEl.classList.remove('field-error');
+  const msgEl = inputEl.parentElement.querySelector('.field-error-msg');
+  if(msgEl) msgEl.remove();
+}
+['inputProjectName','inputRequester','inputStartDate','inputEditor'].forEach(id=>{
+  const el = document.getElementById(id);
+  el.addEventListener('input', ()=> clearFieldError(el));
+});
+
+/* ---- Google Apps Script(スプレッドシート)と通信する共通関数 ---- */
+async function fetchWithRetry(url, options, retries){
+  retries = retries || 3;
+  let lastError = null;
+  for(let i = 0; i < retries; i++){
+    try{
+      const res = await fetch(url, options);
+      if(!res.ok) throw new Error('サーバーエラー: ' + res.status);
+      return await res.json();
+    }catch(e){
+      lastError = e;
+    }
+    if(i < retries - 1){
+      await new Promise(r => setTimeout(r, 500));
+    }
+  }
+  throw lastError;
+}
+async function gasGet(action){
+  // ブラウザやネットワーク経路でのキャッシュを確実に避けるため、
+  // 毎回異なる値をクエリに付け、cache: 'no-store' を指定する
+  const cacheBust = '_=' + Date.now();
+  const query = action ? ('action=' + encodeURIComponent(action) + '&' + cacheBust) : cacheBust;
+  const url = GAS_URL + '?' + query;
+  return await fetchWithRetry(url, { cache: 'no-store' });
+}
+async function gasPost(body){
+  // Content-Type を text/plain にすることでブラウザのCORSプリフライトを回避する
+  return await fetchWithRetry(GAS_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify(body)
+  });
+}
+
+/* ---- 個人設定（この端末だけ・localStorageに保存） ---- */
+function localGet(key){
+  try{ return localStorage.getItem(key); }catch(e){ return null; }
+}
+function localSet(key, value){
+  try{ localStorage.setItem(key, value); }catch(e){ /* 無視 */ }
+}
+
+async function loadVideos(){
+  try{
+    const data = await gasGet('');
+    videos = data.videos || [];
+    setSaveStatus('同期済み', 'ok');
+  }catch(e){
+    setSaveStatus('⚠ 読み込みエラー: ' + (e && e.message ? e.message : e), 'error');
+  }
+  render();
+  updateSyncTime();
+}
+
+async function saveVideos(){
+  try{
+    await gasPost({ videos: videos });
+    setSaveStatus('保存しました', 'ok');
+  }catch(e){
+    setSaveStatus('⚠ 保存エラー: ' + (e && e.message ? e.message : e), 'error');
+  }
+}
+
+/* ---- あなたの名前（この端末だけの個人設定） ---- */
+async function loadMyName(){
+  myName = localGet(ME_KEY) || '';
+  updateMeLabel();
+  // 起動のたびに名前確認ポップアップを表示。名前が既にあれば入力欄に自動で入れておき、
+  // 変更したい場合はそのまま書き換えられるようにする
+  document.getElementById('inputMeName').value = myName;
+  document.getElementById('cancelMe').classList.add('hidden');
+  document.getElementById('submitMe').textContent = myName ? '🆗' : '保存';
+  document.getElementById('meOverlay').classList.remove('hidden');
+}
+async function saveMyName(name){
+  myName = name;
+  updateMeLabel();
+  localSet(ME_KEY, name);
+}
+function updateMeLabel(){
+  document.getElementById('meLabel').textContent = myName ? myName : 'あなたの名前を設定';
+}
+
+function updateSyncTime(){
+  const d = new Date();
+  document.getElementById('syncTime').textContent =
+    String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')+':'+String(d.getSeconds()).padStart(2,'0');
+}
+
+function render(){
+  const counts = {requested:0, in_progress:0, completed:0};
+  videos.forEach(v => counts[v.status] = (counts[v.status]||0)+1);
+  document.getElementById('count-requested').textContent = counts.requested;
+  document.getElementById('count-in_progress').textContent = counts.in_progress;
+  document.getElementById('count-completed').textContent = counts.completed;
+
+  document.querySelectorAll('.tab').forEach(t=>{
+    t.classList.toggle('active', t.dataset.status === activeTab);
+  });
+
+  const list = document.getElementById('list');
+  const items = videos.filter(v => v.status === activeTab)
+                       .sort((a,b) => (b.sortKey||0) - (a.sortKey||0));
+
+  if(items.length === 0){
+    const msgs = {
+      requested: '依頼はまだありません。右下の + から追加してください。',
+      in_progress: '現在制作中の動画はありません。',
+      completed: '納品済みの動画はまだありません。'
+    };
+    list.innerHTML = '<div class="empty">'+msgs[activeTab]+'</div>';
+    return;
+  }
+
+  list.innerHTML = items.map(v => cardHtml(v)).join('');
+
+  list.querySelectorAll('[data-edit]').forEach(btn=>{
+    btn.addEventListener('click', ()=> openEdit(btn.dataset.edit));
+  });
+  list.querySelectorAll('[data-addmaterial]').forEach(btn=>{
+    btn.addEventListener('click', ()=> openAddMaterial(btn.dataset.addmaterial));
+  });
+  list.querySelectorAll('[data-adddelivery]').forEach(btn=>{
+    btn.addEventListener('click', ()=> openAddDelivery(btn.dataset.adddelivery));
+  });
+  list.querySelectorAll('[data-confirm]').forEach(btn=>{
+    btn.addEventListener('click', ()=> tryOpenConfirm(btn.dataset.confirm));
+  });
+  list.querySelectorAll('[data-revert]').forEach(btn=>{
+    btn.addEventListener('click', ()=> tryRevert(btn.dataset.revert));
+  });
+  list.querySelectorAll('[data-markfinal]').forEach(btn=>{
+    btn.addEventListener('click', ()=> tryMarkFinal(btn.dataset.markfinal));
+  });
+  list.querySelectorAll('[data-markpending]').forEach(btn=>{
+    btn.addEventListener('click', ()=> tryMarkPending(btn.dataset.markpending));
+  });
+  list.querySelectorAll('[data-delete]').forEach(btn=>{
+    btn.addEventListener('click', ()=> onDelete(btn.dataset.delete));
+  });
+  list.querySelectorAll('[data-readmore]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const id = btn.dataset.readmore;
+      if(expandedMessages.has(id)) expandedMessages.delete(id);
+      else expandedMessages.add(id);
+      render();
+    });
+  });
+  updateMessageOverflow();
+  bindThumbPreviewHandlers();
+}
+
+/* ---- サムネイルタップでのその場プレビュー(ライトボックス) ---- */
+function bindThumbPreviewHandlers(){
+  document.querySelectorAll('[data-preview-id]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      openLightbox(btn.dataset.previewId, btn.dataset.previewType);
+    });
+  });
+}
+function driveMediaUrl(fileId){
+  // 「リンクを知っている人は閲覧可」で共有されたファイルは、APIキーだけで匿名アクセスできる
+  return 'https://www.googleapis.com/drive/v3/files/' + fileId + '?alt=media&key=' + GOOGLE_API_KEY;
+}
+function openLightbox(fileId, type){
+  const content = document.getElementById('lightboxContent');
+  if(type === 'video'){
+    // アプリ内蔵の簡易プレーヤーで再生する。万一読み込めない場合だけGoogleの埋め込み画面にフォールバックする
+    content.innerHTML = `<video controls playsinline controlslist="nodownload" oncontextmenu="return false;" src="${escapeHtml(driveMediaUrl(fileId))}" onerror="this.outerHTML='<iframe src=\\'${escapeHtml(drivePreviewUrl(fileId))}\\' allow=\\'autoplay\\' allowfullscreen></iframe>'"></video>`;
+  }else{
+    content.innerHTML = `<img src="${escapeHtml(driveMediaUrl(fileId))}" alt="" draggable="false" oncontextmenu="return false;" onerror="this.src='${escapeHtml('https://drive.google.com/thumbnail?id=' + fileId + '&sz=w1600')}'">`;
+  }
+  document.getElementById('lightboxOverlay').classList.remove('hidden');
+}
+function closeLightbox(){
+  document.getElementById('lightboxOverlay').classList.add('hidden');
+  document.getElementById('lightboxContent').innerHTML = '';
+}
+document.getElementById('lightboxClose').addEventListener('click', closeLightbox);
+document.getElementById('lightboxOverlay').addEventListener('click', (e)=>{
+  if(e.target.id === 'lightboxOverlay') closeLightbox();
+});
+
+
+function updateMessageOverflow(){
+  document.querySelectorAll('.message-block').forEach(block=>{
+    const textEl = block.querySelector('.message-text');
+    const btn = block.querySelector('.read-more-btn');
+    if(!textEl || !btn) return;
+    if(textEl.classList.contains('clamped')){
+      if(textEl.scrollHeight > textEl.clientHeight + 1){
+        btn.classList.remove('is-hidden');
+      }else{
+        btn.classList.add('is-hidden');
+      }
+    }else{
+      // 展開中は常に「閉じる」ボタンを表示
+      btn.classList.remove('is-hidden');
+    }
+  });
+}
+
+function dropboxDownloadUrl(url){
+  // dropbox.com の共有リンクは dl=0 → dl=1 でダウンロード直リンクになる
+  if(/dl=1/.test(url)) return url;
+  if(/dl=0/.test(url)) return url.replace('dl=0', 'dl=1');
+  return url + (url.includes('?') ? '&dl=1' : '?dl=1');
+}
+
+function driveFileId(url){
+  let m = url.match(/\/file\/d\/([a-zA-Z0-9_-]{10,})/);
+  if(m) return m[1];
+  m = url.match(/[?&]id=([a-zA-Z0-9_-]{10,})/);
+  if(m) return m[1];
+  return null;
+}
+function driveDownloadUrl(url){
+  const id = driveFileId(url);
+  return id ? ('https://drive.google.com/uc?export=download&id=' + id) : url;
+}
+function driveThumbUrl(fileId){
+  return 'https://drive.google.com/thumbnail?id=' + fileId + '&sz=w300';
+}
+function drivePreviewUrl(fileId){
+  return 'https://drive.google.com/file/d/' + fileId + '/preview';
+}
+function isVideoName(name){
+  return /\.(mp4|mov|m4v|avi|mkv|webm|wmv)(\?|#|$)/i.test(name || '');
+}
+
+function serviceButtonHtml(url, index){
+  const prefix = index ? (index + '. ') : '';
+  if(/drive\.google\.com|docs\.google\.com/i.test(url)){
+    // 「開く」だと編集権限のある相手が誤って元ファイルを編集してしまう恐れがあるため、
+    // 安全のため「ダウンロード」に統一する。
+    // ただし動画ファイルの場合、Google側の仕様でダウンロードの代わりにプレビュー画面が
+    // 開くことがある。その場合も編集モードには入らない（あと1タップ必要になるだけ）。
+    return `<a class="dl-btn" href="${escapeHtml(driveDownloadUrl(url))}" download target="_blank" rel="noopener">${prefix}⬇ ダウンロード</a>`;
+  }
+  if(/dropbox\.com/i.test(url)){
+    return `<a class="dl-btn" href="${escapeHtml(dropboxDownloadUrl(url))}" download target="_blank" rel="noopener">${prefix}⬇ ダウンロード</a>`;
+  }
+  if(/onedrive\.live\.com|1drv\.ms|sharepoint\.com/i.test(url)){
+    // OneDrive個人アカウントの共有リンクはdownload=1が効かない場合があるため、安全に「開く」にする
+    return `<a class="dl-btn open-link" href="${escapeHtml(url)}" target="_blank" rel="noopener">${prefix}🔵 OneDriveで開く</a>`;
+  }
+  // ドライブ・OneDrive・Dropbox以外は開かせず、非対応の表示のみ
+  return `<span class="dl-btn unsupported">${prefix}⚠ 対応していないサービスです（ドライブ・OneDrive・Dropboxのみ）</span>`;
+}
+
+/* ---- 素材の自動命名（動画/画像 + 日付 + 連番） ---- */
+function dateCompact(){
+  const d = new Date();
+  return '' + d.getFullYear() + String(d.getMonth()+1).padStart(2,'0') + String(d.getDate()).padStart(2,'0');
+}
+function detectMaterialType(url){
+  if(/\.(mp4|mov|m4v|avi|mkv|webm|wmv)(\?|#|$)/i.test(url)) return '動画';
+  if(/\.(jpg|jpeg|png|gif|heic|heif|webp|bmp|tiff)(\?|#|$)/i.test(url)) return '画像';
+  return '動画';
+}
+function allExistingMaterialNames(){
+  const names = [];
+  videos.forEach(v=>{
+    (v.materials||[]).forEach(m=>{ if(m && typeof m === 'object' && m.name) names.push(m.name); });
+    (v.deliveryLinks||[]).forEach(m=>{ if(m && typeof m === 'object' && m.name) names.push(m.name); });
+  });
+  return names;
+}
+function nextSeqForDate(names, dateStr){
+  let max = 0;
+  const re = new RegExp('^(?:動画|画像)' + dateStr + '(\\d{2})$');
+  names.forEach(n=>{
+    const mm = n && n.match(re);
+    if(mm){
+      const num = parseInt(mm[1], 10);
+      if(num > max) max = num;
+    }
+  });
+  return max + 1;
+}
+function autoMaterialName(url, dateStr, usedThisBatch){
+  const type = detectMaterialType(url);
+  const combined = allExistingMaterialNames().concat(usedThisBatch);
+  const seq = nextSeqForDate(combined, dateStr);
+  return type + dateStr + String(seq).padStart(2,'0');
+}
+function normalizeItem(m){
+  if(typeof m === 'string') return {name:null, url:m};
+  return m;
+}
+
+function materialRowHtml(item, index){
+  const url = item.url;
+  const isUrl = /^https?:\/\//i.test(url);
+  if(!isUrl){
+    return `<div class="m-row"><span class="m-item">${escapeHtml(url)}</span></div>`;
+  }
+  const nameHtml = item.name ? `<div class="m-name">${escapeHtml(item.name)}</div>` : '';
+  const driveId = /drive\.google\.com|docs\.google\.com/i.test(url) ? driveFileId(url) : null;
+  if(driveId){
+    const isVideo = isVideoName(item.name);
+    const playIconHtml = isVideo ? '<span class="thumb-play">▶</span>' : '';
+    const thumbHtml = `<button type="button" class="thumb-btn" data-preview-id="${escapeHtml(driveId)}" data-preview-type="${isVideo ? 'video' : 'image'}" aria-label="プレビュー">
+      <img src="${escapeHtml(driveThumbUrl(driveId))}" alt="" loading="lazy" draggable="false" oncontextmenu="return false;" onerror="this.closest('.thumb-btn').classList.add('thumb-fallback')">${playIconHtml}
+    </button>`;
+    const downloadHtml = `<div style="margin-top:6px;">${serviceButtonHtml(url, index)}</div>`;
+    return `<div class="m-row">${nameHtml}${thumbHtml}${downloadHtml}</div>`;
+  }
+  return `<div class="m-row">${nameHtml}${serviceButtonHtml(url, index)}</div>`;
+}
+
+function materialsHtml(v){
+  if(!v.materials || v.materials.length === 0) return '';
+  const rows = v.materials.map(normalizeItem).map((item,i) => materialRowHtml(item, i+1)).join('');
+  return `<div class="materials"><div class="m-label">素材動画</div>${rows}</div>`;
+}
+
+function deliveryLinkHtml(v){
+  const raw = (v.deliveryLinks && v.deliveryLinks.length)
+    ? v.deliveryLinks
+    : (v.deliveryLink ? [v.deliveryLink] : []);
+  if(raw.length === 0) return '';
+  const rows = raw.map(normalizeItem).map((item,i) => materialRowHtml(item, i+1)).join('');
+  return `<div class="materials delivery-band"><div class="m-label">納品URL</div>${rows}</div>`;
+}
+
+let expandedMessages = new Set();
+function messageBlockHtml(v){
+  if(!v.message) return '';
+  const isExpanded = expandedMessages.has(v.id);
+  const clampClass = isExpanded ? '' : 'clamped';
+  return `<div class="message-block">
+    <div class="message-text ${clampClass}">${escapeHtml(v.message)}</div>
+    <button type="button" class="read-more-btn is-hidden" data-readmore="${v.id}">${isExpanded ? '閉じる' : '続きを読む'}</button>
+  </div>`;
+}
+
+function cardHtml(v){
+  let metaHtml = '';
+  let actionsHtml = '';
+
+  if(v.status === 'requested'){
+    metaHtml = `依頼日 <b>${fmt(v.requestedDate)}</b><br>依頼者 <b>${escapeHtml(v.requester||'-')}</b>`;
+    actionsHtml = `
+      <button class="chip-btn chip-add" data-addmaterial="${v.id}">＋ 素材を追加</button>
+      <button class="chip-btn chip-accept" data-edit="${v.id}">依頼を受ける</button>
+    `;
+  } else if(v.status === 'in_progress'){
+    const hasDelivery = v.deliveryLinks && v.deliveryLinks.length > 0;
+    metaHtml = `開始日 <b>${fmt(v.startDate)}</b><br>依頼者 <b>${escapeHtml(v.requester||'-')}</b><br>担当者 <b>${escapeHtml(v.assignee||'-')}</b>`;
+    actionsHtml = `
+      <button class="chip-btn chip-add" data-addmaterial="${v.id}">＋ 素材を追加</button>
+      <button class="chip-btn chip-add" data-adddelivery="${v.id}">＋ 納品URLを追加</button>
+      <button class="chip-btn chip-revert" data-revert="${v.id}">依頼に戻す</button>
+      ${hasDelivery ? `<button class="chip-btn chip-deliver" data-confirm="${v.id}">納品する</button>` : ''}
+    `;
+  } else {
+    metaHtml = `納品日 <b>${fmt(v.completedDate)}</b><br>担当者 <b>${escapeHtml(v.assignee||'-')}</b>`;
+    if(v.isFinal){
+      metaHtml += `<br>確認日 <b>${fmt(v.confirmedDate)}</b><br>確認者 <b>${escapeHtml(v.confirmedBy||'-')}</b>`;
+    }
+    actionsHtml = `
+      <button class="chip-btn chip-revert" data-revert="${v.id}">制作へ戻す</button>
+      ${v.isFinal
+        ? `<button class="chip-btn chip-pending" data-markpending="${v.id}">確認待ちへ戻す</button>`
+        : `<button class="chip-btn chip-final" data-markfinal="${v.id}">👑 確認しました！</button>`}
+    `;
+  }
+
+  const isFinalDone = v.status === 'completed' && v.isFinal;
+  return `<div class="card" data-status="${v.status}">
+    <button class="delete-icon-btn" data-delete="${v.id}" aria-label="削除">🗑</button>
+    ${v.status === 'completed' ? `<div class="final-chip${v.isFinal ? '' : ' pending-chip'}">${v.isFinal ? '👑完成品' : '📝確認待ち'}</div>` : ''}
+    <div class="card-body${isFinalDone ? ' final-archived' : ''}">
+      <h3>${escapeHtml(v.projectName || v.name)}</h3>
+      <div class="meta">${metaHtml}</div>
+      ${messageBlockHtml(v)}
+      ${v.status !== 'in_progress' ? materialsHtml(v) : ''}
+      ${(v.status === 'completed' || v.status === 'in_progress') ? deliveryLinkHtml(v) : ''}
+      ${(v.status === 'in_progress' && !(v.deliveryLinks && v.deliveryLinks.length)) ? '<div class="hint-text">納品URLを追加すると「納品」ボタンが表示されます</div>' : ''}
+      <div class="card-actions">${actionsHtml}</div>
+    </div>
+  </div>`;
+}
+
+/* ---- 依頼追加シート・素材欄 ---- */
+let currentMaterialInput = null;
+let sourceParentOverlayId = null;
+
+function openSourcePicker(input){
+  currentMaterialInput = input;
+  // 開いている親ポップアップの上に「開く」メニューが隠れて操作できなくなるのを防ぐため、
+  // 親ポップアップを一時的に隠してから開く
+  const openOverlay = document.querySelector('.overlay:not(.hidden)');
+  sourceParentOverlayId = openOverlay ? openOverlay.id : null;
+  if(openOverlay) openOverlay.classList.add('hidden');
+  document.getElementById('sourceOverlay').classList.remove('hidden');
+}
+function closeSourcePicker(){
+  document.getElementById('sourceOverlay').classList.add('hidden');
+  if(sourceParentOverlayId){
+    const parent = document.getElementById(sourceParentOverlayId);
+    if(parent) parent.classList.remove('hidden');
+    sourceParentOverlayId = null;
+  }
+}
+
+function renumberBlocks(containerId){
+  const blocks = document.querySelectorAll('#' + containerId + ' .material-block');
+  blocks.forEach((block, i)=>{
+    const badge = block.querySelector('.block-index');
+    if(badge) badge.textContent = (i + 1) + '.';
+  });
+}
+
+function addMaterialRow(name, value){
+  const wrap = document.getElementById('materialsList');
+  const row = document.createElement('div');
+  row.className = 'material-block';
+  row.innerHTML = `<div class="name-row">
+      <span class="block-index"></span>
+      <input type="text" class="material-name-input" placeholder="名前（空欄なら自動で採番）">
+    </div>
+    <div class="material-row">
+      <input type="text" class="material-input" placeholder="ドライブ/OneDrive/DropboxのURL">
+      <button type="button" class="open-source">開く</button>
+      <button type="button" class="remove-material">×</button>
+    </div>`;
+  row.querySelector('.material-name-input').value = name || '';
+  const input = row.querySelector('.material-input');
+  input.value = value || '';
+  row.querySelector('.remove-material').addEventListener('click', ()=>{
+    row.remove();
+    renumberBlocks('materialsList');
+  });
+  row.querySelector('.open-source').addEventListener('click', ()=> openSourcePicker(input));
+  wrap.appendChild(row);
+  renumberBlocks('materialsList');
+}
+
+document.getElementById('cancelSource').addEventListener('click', ()=>{
+  closeSourcePicker();
+  currentMaterialInput = null;
+});
+document.querySelectorAll('.source-btn[data-source]').forEach(btn=>{
+  const isDrive = btn.dataset.source.indexOf('drive.google.com') !== -1;
+  if(isDrive){
+    btn.addEventListener('click', ()=>{
+      const input = currentMaterialInput;
+      let nameInput = null;
+      if(input){
+        const block = input.closest('.material-block');
+        if(block) nameInput = block.querySelector('.name-row input[type="text"]');
+      }
+      closeSourcePicker();
+      openGoogleDrivePicker(input, nameInput);
+    });
+  }else{
+    btn.addEventListener('click', ()=>{
+      window.open(btn.dataset.source, '_blank', 'noopener');
+      closeSourcePicker();
+      if(currentMaterialInput) currentMaterialInput.focus();
+      currentMaterialInput = null;
+    });
+  }
+});
+
+/* ---- Googleドライブ Picker連携（タップして選ぶだけの機能） ---- */
+const GOOGLE_API_KEY = 'AIzaSyAohB7-LIxOadaEsyZdDdyk45TQ5Wsdq3U';
+const GOOGLE_CLIENT_ID = '876205835797-okb692mclgfla83mq7r5vcsvb8j8lsgm.apps.googleusercontent.com';
+const GOOGLE_DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
+
+let googleOAuthToken = null;
+let googleTokenClient = null;
+let pickerTargetUrlInput = null;
+let pickerTargetNameInput = null;
+
+function initGooglePicker(){
+  try{
+    // pickerApiLoaded は<head>内のonGapiLoad()で、ページ読み込みが終わる前に
+    // 先に読み込み始めている（document.write によるページ白飛びを防ぐため）
+    if(typeof google !== 'undefined' && google.accounts && google.accounts.oauth2){
+      googleTokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: GOOGLE_CLIENT_ID,
+        scope: GOOGLE_DRIVE_SCOPE,
+        callback: (tokenResponse)=>{
+          if(tokenResponse && tokenResponse.access_token){
+            googleOAuthToken = tokenResponse.access_token;
+            createGooglePicker();
+          }
+        },
+      });
+    }
+  }catch(e){
+    console.error('Google Picker 初期化エラー', e);
+  }
+}
+
+function openGoogleDrivePicker(urlInput, nameInput){
+  pickerTargetUrlInput = urlInput;
+  pickerTargetNameInput = nameInput;
+  if(!googleTokenClient){
+    console.warn('Googleドライブ連携の準備中です。数秒待ってからもう一度お試しください。');
+    return;
+  }
+  if(googleOAuthToken){
+    createGooglePicker();
+  }else{
+    googleTokenClient.requestAccessToken({ prompt: '' });
+  }
+}
+
+function createGooglePicker(){
+  if(!pickerApiLoaded || !googleOAuthToken) return;
+  const view = new google.picker.DocsView(google.picker.ViewId.DOCS)
+    .setIncludeFolders(false)
+    .setSelectFolderEnabled(false);
+  const picker = new google.picker.PickerBuilder()
+    .addView(view)
+    .setOAuthToken(googleOAuthToken)
+    .setDeveloperKey(GOOGLE_API_KEY)
+    .setCallback(onGooglePickerResult)
+    .build();
+  picker.setVisible(true);
+}
+
+/* ---- Googleドライブ：選んだファイルを自動的にコピーして共有する ---- */
+async function driveApiRequest(url, options){
+  const res = await fetch(url, Object.assign({
+    headers: Object.assign({ 'Authorization': 'Bearer ' + googleOAuthToken }, (options && options.headers) || {})
+  }, options || {}));
+  if(!res.ok){
+    let detail = '';
+    try{ const errBody = await res.json(); detail = errBody && errBody.error && errBody.error.message ? errBody.error.message : ''; }catch(e){}
+    throw new Error('Drive APIエラー(' + res.status + ')' + (detail ? '：' + detail : ''));
+  }
+  return await res.json();
+}
+async function createSharableDriveCopy(fileId, fileName){
+  const copyData = await driveApiRequest(
+    'https://www.googleapis.com/drive/v3/files/' + fileId + '/copy',
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: fileName || '無題のコピー' })
+    }
+  );
+  const newFileId = copyData.id;
+  await driveApiRequest(
+    'https://www.googleapis.com/drive/v3/files/' + newFileId + '/permissions',
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ role: 'reader', type: 'anyone' })
+    }
+  );
+  return {
+    id: newFileId,
+    url: 'https://drive.google.com/file/d/' + newFileId + '/view'
+  };
+}
+
+async function onGooglePickerResult(data){
+  if(data.action === google.picker.Action.PICKED){
+    const file = data.docs[0];
+    const urlInput = pickerTargetUrlInput;
+    const nameInput = pickerTargetNameInput;
+    if(urlInput){
+      urlInput.value = '⏳ コピーを作成中…少しお待ちください';
+      urlInput.disabled = true;
+    }
+    try{
+      const copy = await createSharableDriveCopy(file.id, file.name);
+      if(urlInput){
+        urlInput.disabled = false;
+        urlInput.value = copy.url;
+        urlInput.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+      if(nameInput && !nameInput.value){
+        nameInput.value = file.name;
+      }
+    }catch(e){
+      console.error('コピー作成エラー', e);
+      if(urlInput){
+        urlInput.disabled = false;
+        urlInput.value = file.url || ('https://drive.google.com/file/d/' + file.id + '/view');
+        showFieldError(urlInput, 'コピーの自動作成に失敗しました。元のファイルのリンクを使います（' + (e && e.message ? e.message : '不明なエラー') + '）');
+      }
+      if(nameInput && !nameInput.value){
+        nameInput.value = file.name;
+      }
+    }
+  }
+  if(data.action === google.picker.Action.PICKED || data.action === google.picker.Action.CANCEL){
+    pickerTargetUrlInput = null;
+    pickerTargetNameInput = null;
+  }
+}
+
+window.addEventListener('load', initGooglePicker);
+
+
+document.getElementById('addBtn').addEventListener('click', ()=>{
+  document.getElementById('inputProjectName').value = '';
+  document.getElementById('inputDate').value = todayStr();
+  document.getElementById('inputRequester').value = myName || '';
+  document.getElementById('inputMessage').value = '';
+  document.getElementById('materialsList').innerHTML = '';
+  addMaterialRow('', '');
+  clearFieldError(document.getElementById('inputProjectName'));
+  clearFieldError(document.getElementById('inputRequester'));
+  document.getElementById('addOverlay').classList.remove('hidden');
+});
+document.getElementById('addMaterialBtn').addEventListener('click', ()=> addMaterialRow('', ''));
+document.getElementById('cancelAdd').addEventListener('click', ()=>{
+  document.getElementById('addOverlay').classList.add('hidden');
+});
+document.getElementById('submitAdd').addEventListener('click', async ()=>{
+  const projectNameEl = document.getElementById('inputProjectName');
+  const requesterEl = document.getElementById('inputRequester');
+  const projectName = projectNameEl.value.trim();
+  const date = document.getElementById('inputDate').value || todayStr();
+  const requester = requesterEl.value.trim();
+  const message = document.getElementById('inputMessage').value.trim();
+
+  clearFieldError(projectNameEl);
+  clearFieldError(requesterEl);
+
+  if(!projectName){
+    showFieldError(projectNameEl, 'プロジェクト名が未入力です');
+    return;
+  }
+  const existingProjectNames = videos.map(v => v.projectName || v.name);
+  if(existingProjectNames.includes(projectName)){
+    let n = 1;
+    let candidate;
+    do{
+      candidate = projectName + String(n).padStart(3, '0');
+      n++;
+    }while(existingProjectNames.includes(candidate));
+    projectNameEl.value = candidate;
+    showFieldError(projectNameEl, `この名前は既に使われています。「${candidate}」に自動変更しました。内容を確認し、もう一度「依頼を追加」を押してください。`);
+    return;
+  }
+  if(!requester){
+    showFieldError(requesterEl, '依頼者が未入力です');
+    return;
+  }
+  const rawMaterials = Array.from(document.querySelectorAll('#materialsList .material-block'))
+    .map(block => ({
+      url: block.querySelector('.material-input').value.trim(),
+      customName: block.querySelector('.material-name-input').value.trim()
+    }))
+    .filter(item => item.url.length > 0);
+
+  const dateStr = dateCompact();
+  const usedThisBatch = [];
+  const materials = rawMaterials.map(item=>{
+    let itemName = item.customName;
+    if(!itemName){
+      itemName = autoMaterialName(item.url, dateStr, usedThisBatch);
+    }
+    usedThisBatch.push(itemName);
+    return {name: itemName, url: item.url};
+  });
+
+  videos.push({
+    id: uid(),
+    projectName, name: projectName, status:'requested',
+    requestedDate: date, requester, message: message || null,
+    materials,
+    startDate:null, assignee:null, completedDate:null, deliveryLinks:[], isFinal:false, confirmedDate:null, confirmedBy:null,
+    sortKey: Date.now()
+  });
+  document.getElementById('addOverlay').classList.add('hidden');
+  activeTab = 'requested';
+  render();
+  await saveVideos();
+});
+
+/* ---- 編集開始（依頼→制作中） ---- */
+function openEdit(id){
+  currentTargetId = id;
+  document.getElementById('inputStartDate').value = todayStr();
+  document.getElementById('inputEditor').value = myName || '';
+  clearFieldError(document.getElementById('inputStartDate'));
+  clearFieldError(document.getElementById('inputEditor'));
+  document.getElementById('editOverlay').classList.remove('hidden');
+}
+document.getElementById('cancelEdit').addEventListener('click', ()=>{
+  document.getElementById('editOverlay').classList.add('hidden');
+  currentTargetId = null;
+});
+document.getElementById('submitEdit').addEventListener('click', async ()=>{
+  const dateEl = document.getElementById('inputStartDate');
+  const nameEl = document.getElementById('inputEditor');
+  const date = dateEl.value;
+  const name = nameEl.value.trim();
+
+  clearFieldError(dateEl);
+  clearFieldError(nameEl);
+
+  if(!date){
+    showFieldError(dateEl, '開始日が未入力です');
+    return;
+  }
+  if(!name){
+    showFieldError(nameEl, '担当者名が未入力です');
+    return;
+  }
+  const v = videos.find(x => x.id === currentTargetId);
+  if(v){
+    v.status = 'in_progress';
+    v.startDate = date;
+    v.assignee = name;
+    v.sortKey = Date.now();
+  }
+  document.getElementById('editOverlay').classList.add('hidden');
+  currentTargetId = null;
+  activeTab = 'in_progress';
+  render();
+  await saveVideos();
+});
+
+/* ---- 素材／完成品リンクを追加（依頼・制作中の途中で） ---- */
+let extraTargetField = 'materials';
+
+function addExtraMaterialRow(name, url){
+  const wrap = document.getElementById('extraMaterialsList');
+  const row = document.createElement('div');
+  row.className = 'material-block';
+  row.innerHTML = `<div class="name-row">
+      <span class="block-index"></span>
+      <input type="text" class="extra-material-name-input" placeholder="名前（空欄なら自動で採番）">
+    </div>
+    <div class="material-row">
+      <input type="text" class="extra-material-input" placeholder="ドライブ/OneDrive/DropboxのURL">
+      <button type="button" class="open-source">開く</button>
+      <button type="button" class="remove-material">×</button>
+    </div>`;
+  row.querySelector('.extra-material-name-input').value = name || '';
+  const input = row.querySelector('.extra-material-input');
+  input.value = url || '';
+  row.querySelector('.remove-material').addEventListener('click', ()=>{
+    row.remove();
+    renumberBlocks('extraMaterialsList');
+  });
+  row.querySelector('.open-source').addEventListener('click', ()=> openSourcePicker(input));
+  wrap.appendChild(row);
+  renumberBlocks('extraMaterialsList');
+}
+document.getElementById('addExtraMaterialBtn').addEventListener('click', ()=> addExtraMaterialRow('', ''));
+
+function openAddMaterial(id){
+  currentTargetId = id;
+  extraTargetField = 'materials';
+  document.getElementById('addMaterialOverlayTitle').textContent = '素材を追加';
+  document.getElementById('addMaterialOverlayLabel').textContent = '追加する素材';
+  document.getElementById('extraMaterialsList').innerHTML = '';
+  addExtraMaterialRow('', '');
+  document.getElementById('addMaterialOverlay').classList.remove('hidden');
+}
+function openAddDelivery(id){
+  currentTargetId = id;
+  extraTargetField = 'deliveryLinks';
+  document.getElementById('addMaterialOverlayTitle').textContent = '納品URLを追加';
+  document.getElementById('addMaterialOverlayLabel').textContent = '追加する納品URL';
+  document.getElementById('extraMaterialsList').innerHTML = '';
+  addExtraMaterialRow('', '');
+  document.getElementById('addMaterialOverlay').classList.remove('hidden');
+}
+document.getElementById('cancelAddMaterial').addEventListener('click', ()=>{
+  document.getElementById('addMaterialOverlay').classList.add('hidden');
+  currentTargetId = null;
+});
+document.getElementById('submitAddMaterial').addEventListener('click', async ()=>{
+  const v = videos.find(x => x.id === currentTargetId);
+  if(!v){
+    document.getElementById('addMaterialOverlay').classList.add('hidden');
+    currentTargetId = null;
+    return;
+  }
+  const raw = Array.from(document.querySelectorAll('#extraMaterialsList .material-block'))
+    .map(block => ({
+      url: block.querySelector('.extra-material-input').value.trim(),
+      customName: block.querySelector('.extra-material-name-input').value.trim()
+    }))
+    .filter(item => item.url.length > 0);
+
+  if(raw.length > 0){
+    const dateStr = dateCompact();
+    const usedThisBatch = [];
+    const newItems = raw.map(item=>{
+      let itemName = item.customName;
+      if(!itemName){
+        itemName = autoMaterialName(item.url, dateStr, usedThisBatch);
+      }
+      usedThisBatch.push(itemName);
+      return {name: itemName, url: item.url};
+    });
+    v[extraTargetField] = (v[extraTargetField] || []).map(normalizeItem).concat(newItems);
+    v.sortKey = Date.now();
+    await saveVideos();
+  }
+  document.getElementById('addMaterialOverlay').classList.add('hidden');
+  currentTargetId = null;
+  render();
+});
+
+/* ---- 完成確認（制作中→完成） ---- */
+function showPermissionMessage(msg, offerSetName){
+  document.getElementById('permissionMsg').textContent = msg;
+  document.getElementById('permissionSetNameBtn').classList.toggle('hidden', !offerSetName);
+  document.getElementById('permissionOverlay').classList.remove('hidden');
+}
+document.getElementById('closePermission').addEventListener('click', ()=>{
+  document.getElementById('permissionOverlay').classList.add('hidden');
+});
+document.getElementById('permissionSetNameBtn').addEventListener('click', ()=>{
+  document.getElementById('permissionOverlay').classList.add('hidden');
+  document.getElementById('inputMeName').value = myName;
+  document.getElementById('meOverlay').classList.remove('hidden');
+});
+
+/* 制作中の担当者本人かどうかを確認する共通チェック */
+function checkAssigneePermission(v, actionLabel){
+  if(!myName){
+    showPermissionMessage('先に「あなたの名前」を設定してください。担当者「' + (v.assignee||'-') + '」さんご本人のみ' + actionLabel + 'できます。', true);
+    return false;
+  }
+  if(myName.trim() !== (v.assignee||'').trim()){
+    showPermissionMessage('「' + actionLabel + '」できるのは担当者「' + (v.assignee||'-') + '」さんだけです。あなたは「' + myName + '」として登録されています。', true);
+    return false;
+  }
+  return true;
+}
+
+function tryOpenConfirm(id){
+  const v = videos.find(x => x.id === id);
+  if(!v) return;
+  if(!checkAssigneePermission(v, '納品')) return;
+  openConfirm(id);
+}
+
+function openConfirm(id){
+  currentTargetId = id;
+  const v = videos.find(x => x.id === id);
+  document.getElementById('confirmMsg').textContent =
+    'この「' + (v ? (v.projectName || v.name) : '') + '」の動画を納品しますか？';
+  document.getElementById('confirmOverlay').classList.remove('hidden');
+}
+document.getElementById('confirmNo').addEventListener('click', ()=>{
+  document.getElementById('confirmOverlay').classList.add('hidden');
+  currentTargetId = null;
+});
+document.getElementById('confirmYes').addEventListener('click', async ()=>{
+  const v = videos.find(x => x.id === currentTargetId);
+  if(v){
+    v.status = 'completed';
+    v.completedDate = todayStr();
+    // 完成品リンクは制作中の間にすでに追加済みのものをそのまま使う
+    delete v.deliveryLink;
+    // 担当者名は制作中の時のものを自動継承
+    v.sortKey = Date.now();
+  }
+  document.getElementById('confirmOverlay').classList.add('hidden');
+  currentTargetId = null;
+  activeTab = 'completed';
+  render();
+  await saveVideos();
+});
+
+/* ---- 差し戻し・削除・完成品指定 ---- */
+let pendingAction = null; // {type:'revert'|'pending', id}
+
+function showRevertLikeConfirm(type, id, msg){
+  pendingAction = {type, id};
+  document.getElementById('revertConfirmMsg').textContent = msg;
+  document.getElementById('revertConfirmOverlay').classList.remove('hidden');
+}
+
+function tryRevert(id){
+  const v = videos.find(x => x.id === id);
+  if(!v) return;
+  if(v.status === 'in_progress'){
+    if(!checkAssigneePermission(v, '依頼への差し戻し')) return;
+    showRevertLikeConfirm('revert', id, '⚠️これは制作中のプロジェクトです。依頼に戻しますか？');
+    return;
+  }
+  if(v.status === 'completed' && v.isFinal){
+    showRevertLikeConfirm('revert', id, '⚠️これは完成済みのプロジェクトです。制作中へ戻しますか？');
+    return;
+  }
+  if(v.status === 'completed'){
+    showRevertLikeConfirm('revert', id, '⚠️これは納品済みのプロジェクトです。制作中へ戻しますか？');
+    return;
+  }
+}
+function tryMarkPending(id){
+  const v = videos.find(x => x.id === id);
+  if(!v) return;
+  showRevertLikeConfirm('pending', id, '⚠️これは完成品のプロジェクトです。確認待ちへ戻しますか？');
+}
+function tryMarkFinal(id){
+  const v = videos.find(x => x.id === id);
+  if(!v) return;
+  currentTargetId = id;
+  document.getElementById('markFinalProjectName').textContent = 'プロジェクト名 : ' + (v.projectName || v.name);
+  const dateEl = document.getElementById('inputConfirmedDate');
+  const nameEl = document.getElementById('inputConfirmedBy');
+  dateEl.value = todayStr();
+  nameEl.value = myName || '';
+  clearFieldError(dateEl);
+  clearFieldError(nameEl);
+  document.getElementById('markFinalOverlay').classList.remove('hidden');
+}
+document.getElementById('cancelMarkFinal').addEventListener('click', ()=>{
+  document.getElementById('markFinalOverlay').classList.add('hidden');
+  currentTargetId = null;
+});
+document.getElementById('submitMarkFinal').addEventListener('click', async ()=>{
+  const dateEl = document.getElementById('inputConfirmedDate');
+  const nameEl = document.getElementById('inputConfirmedBy');
+  const date = dateEl.value;
+  const name = nameEl.value.trim();
+
+  clearFieldError(dateEl);
+  clearFieldError(nameEl);
+
+  if(!date){
+    showFieldError(dateEl, '確認した日が未入力です');
+    return;
+  }
+  if(!name){
+    showFieldError(nameEl, '確認した人が未入力です');
+    return;
+  }
+  const id = currentTargetId;
+  document.getElementById('markFinalOverlay').classList.add('hidden');
+  currentTargetId = null;
+  await onMarkFinal(id, date, name);
+});
+document.getElementById('revertConfirmNo').addEventListener('click', ()=>{
+  document.getElementById('revertConfirmOverlay').classList.add('hidden');
+  pendingAction = null;
+});
+document.getElementById('revertConfirmYes').addEventListener('click', async ()=>{
+  const action = pendingAction;
+  document.getElementById('revertConfirmOverlay').classList.add('hidden');
+  pendingAction = null;
+  if(!action) return;
+  if(action.type === 'revert') await onRevert(action.id);
+  else if(action.type === 'pending') await onMarkPending(action.id);
+});
+
+async function onRevert(id){
+  const v = videos.find(x => x.id === id);
+  if(!v) return;
+  if(v.status === 'in_progress'){
+    v.status = 'requested';
+  } else if(v.status === 'completed'){
+    v.status = 'in_progress';
+    v.isFinal = false;
+    v.confirmedDate = null;
+    v.confirmedBy = null;
+  }
+  v.sortKey = Date.now();
+  render();
+  await saveVideos();
+}
+async function onMarkFinal(id, confirmedDate, confirmedBy){
+  const v = videos.find(x => x.id === id);
+  if(!v) return;
+  v.isFinal = true;
+  v.confirmedDate = confirmedDate;
+  v.confirmedBy = confirmedBy;
+  v.sortKey = Date.now();
+  render();
+  await saveVideos();
+}
+async function onMarkPending(id){
+  const v = videos.find(x => x.id === id);
+  if(!v) return;
+  v.isFinal = false;
+  v.confirmedDate = null;
+  v.confirmedBy = null;
+  v.sortKey = Date.now();
+  render();
+  await saveVideos();
+}
+let pendingDeleteId = null;
+function onDelete(id){
+  const v = videos.find(x => x.id === id);
+  pendingDeleteId = id;
+  const msgEl = document.getElementById('deleteConfirmMsg');
+  if(v && v.status === 'completed' && v.isFinal){
+    msgEl.innerHTML = '⚠️ 注意！<br>👑完成品「' + escapeHtml(v.projectName || v.name) + '」を削除しますか？';
+  }else{
+    msgEl.textContent = '⚠️このプロジェクト依頼を削除しますか？';
+  }
+  document.getElementById('deleteConfirmOverlay').classList.remove('hidden');
+}
+document.getElementById('deleteConfirmNo').addEventListener('click', ()=>{
+  document.getElementById('deleteConfirmOverlay').classList.add('hidden');
+  pendingDeleteId = null;
+});
+document.getElementById('deleteConfirmYes').addEventListener('click', async ()=>{
+  const id = pendingDeleteId;
+  document.getElementById('deleteConfirmOverlay').classList.add('hidden');
+  pendingDeleteId = null;
+  if(!id) return;
+  videos = videos.filter(x => x.id !== id);
+  render();
+  await saveVideos();
+});
+
+document.getElementById('tabs').addEventListener('click', (e)=>{
+  const tab = e.target.closest('.tab');
+  if(!tab) return;
+  activeTab = tab.dataset.status;
+  render();
+});
+
+document.getElementById('syncBtn').addEventListener('click', loadVideos);
+
+document.getElementById('meBtn').addEventListener('click', ()=>{
+  document.getElementById('inputMeName').value = myName;
+  document.getElementById('cancelMe').classList.remove('hidden');
+  document.getElementById('submitMe').textContent = '保存';
+  document.getElementById('meOverlay').classList.remove('hidden');
+});
+document.getElementById('cancelMe').addEventListener('click', ()=>{
+  document.getElementById('meOverlay').classList.add('hidden');
+});
+document.getElementById('submitMe').addEventListener('click', async ()=>{
+  const name = document.getElementById('inputMeName').value.trim();
+  if(!name){
+    showFieldError(document.getElementById('inputMeName'), '名前が未入力です');
+    return;
+  }
+  await saveMyName(name);
+  document.getElementById('meOverlay').classList.add('hidden');
+});
+
+loadVideos();
+loadMyName();
+
+/* ---- チームパスワードによる簡易ロック ---- */
+const TEAM_PASSWORD_KEY = 'teamPassword';
+const MY_UNLOCK_PW_KEY = 'videoboard_unlockedPassword';
+let teamPassword = null;
+
+async function checkPasswordGate(){
+  try{
+    const data = await gasGet('password');
+    teamPassword = data.password || null;
+  }catch(e){
+    teamPassword = null;
+  }
+
+  if(!teamPassword){
+    document.getElementById('passwordSetupOverlay').classList.remove('hidden');
+    return;
+  }
+
+  const myUnlockedPw = localGet(MY_UNLOCK_PW_KEY);
+  if(myUnlockedPw !== teamPassword){
+    document.getElementById('passwordLockOverlay').classList.remove('hidden');
+  }
+}
+
+document.getElementById('submitNewPassword').addEventListener('click', async ()=>{
+  const pwEl = document.getElementById('inputNewPassword');
+  const pw = pwEl.value;
+  clearFieldError(pwEl);
+  if(!pw){
+    showFieldError(pwEl, 'パスワードが未入力です');
+    return;
+  }
+  try{
+    await gasPost({ action: 'setPassword', password: pw });
+  }catch(e){
+    showFieldError(pwEl, '設定に失敗しました（' + (e && e.message ? e.message : '不明なエラー') + '）。もう一度お試しください');
+    return;
+  }
+  teamPassword = pw;
+  localSet(MY_UNLOCK_PW_KEY, pw);
+  document.getElementById('passwordSetupOverlay').classList.add('hidden');
+});
+
+document.getElementById('submitUnlockPassword').addEventListener('click', async ()=>{
+  const pwEl = document.getElementById('inputUnlockPassword');
+  const pw = pwEl.value;
+  clearFieldError(pwEl);
+  if(!pw){
+    showFieldError(pwEl, 'パスワードが未入力です');
+    return;
+  }
+  if(pw !== teamPassword){
+    showFieldError(pwEl, 'パスワードが違います');
+    return;
+  }
+  localSet(MY_UNLOCK_PW_KEY, pw);
+  document.getElementById('passwordLockOverlay').classList.add('hidden');
+});
+
+checkPasswordGate();
+</script>
+</body>
+</html>
